@@ -1,8 +1,69 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import RedirectResponse
+from dotenv import load_dotenv
+
+import os
+import httpx
 
 router = APIRouter()
+
+load_dotenv()
+
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
+
+GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
 
 @router.get("/auth/google/login")
 
 def google_login():
-    return {"msg": "redirect to google"}
+    params = {
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "access_type": "offline"
+    }
+
+    query = "&".join(f"{k}={v}" for k,v in params.items())
+    return RedirectResponse(f"{GOOGLE_AUTH_URL}?{query}")
+
+
+@router.get("/auth/google/callback")
+async def google_callback(code: str):
+    # Exchange code for tokens
+    async with httpx.AsyncClient() as client:
+        token_res = await client.post(GOOGLE_TOKEN_URL, data={
+            "code": code,
+            "client_id": GOOGLE_CLIENT_ID,
+            "client_secret": GOOGLE_CLIENT_SECRET,
+            "redirect_uri": GOOGLE_REDIRECT_URI,
+            "grant_type": "authorization_code",
+        })
+
+    tokens = token_res.json()
+    access_token = tokens.get("access_token")
+
+    if not access_token:
+        raise HTTPException(status_code=400, detail="Failed to get access token")
+
+    # Fetch user info from Google
+    async with httpx.AsyncClient() as client:
+        user_res = await client.get(
+            GOOGLE_USERINFO_URL,
+            headers={"Authorization": f"Bearer {access_token}"}
+        )
+
+    user = user_res.json()
+
+    # `user` now has: email, name, picture, sub (Google's user ID)
+    # Next step: save to DB and return a JWT — placeholder for now
+    return {
+        "email": user.get("email"),
+        "name": user.get("name"),
+        "picture": user.get("picture"),
+    }
+
