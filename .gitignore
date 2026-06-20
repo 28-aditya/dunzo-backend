@@ -216,3 +216,25 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+# virtual environments
+.venv/
+.venv-1/
+venv/
+env/
+
+# misc tools / agents
+.agents/
+
+# python cache
+__pycache__/
+*.pyc
+
+# env files (VERY important)
+.env
+
+__pycache__/
+*.pyc
+
+skills-lock.json
