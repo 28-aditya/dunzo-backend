@@ -1,17 +1,18 @@
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
-from sqlalchemy.orm import declarative_base
+from sqlalchemy import create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 import os
 from dotenv import load_dotenv
-
-from passlib.context import CryptContext
 
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-engine = create_async_engine(DATABASE_URL, echo=True)
+engine = create_engine(DATABASE_URL, echo=True, pool_pre_ping=True)
 
-SessionLocal = async_sessionmaker(bind=engine, expire_on_commit=False)
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine
+)
 
 Base = declarative_base()
-
