@@ -2,6 +2,8 @@ from fastapi import APIRouter, HTTPException
 from fastapi.responses import RedirectResponse
 from dotenv import load_dotenv
 from services.user_service import create_or_get_user
+from datetime import timedelta, timezone, datetime
+from core.security import create_token, verify_token
 
 import os
 import httpx
@@ -72,4 +74,14 @@ async def google_callback(code: str):
 
     db_user = create_or_get_user(userDict)
 
-    return db_user
+    jwt_payload = {
+        "user_id":db_user.id,
+        "exp": (datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()
+    }
+
+    current_session_token = create_token(jwt_payload)
+
+    return {
+        "access_token": current_session_token,
+        "token_type": "bearer"
+    }
