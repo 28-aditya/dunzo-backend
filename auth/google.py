@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import RedirectResponse
 from dotenv import load_dotenv
+from services.user_service import create_or_get_user
 
 import os
 import httpx
@@ -28,7 +29,8 @@ def google_login():
         "access_type": "offline"
     }
 
-    query = "&".join(f"{k}={v}" for k,v in params.items())
+    from urllib.parse import urlencode
+    query = urlencode(params)
     return RedirectResponse(f"{GOOGLE_AUTH_URL}?{query}")
 
 
@@ -61,9 +63,13 @@ async def google_callback(code: str):
 
     # `user` now has: email, name, picture, sub (Google's user ID)
     # Next step: save to DB and return a JWT — placeholder for now
-    return {
+    userDict= {
         "email": user.get("email"),
         "name": user.get("name"),
-        "picture": user.get("picture"),
+        "auth_provider": "google",
+        "provider_user_id": user.get("sub")
     }
 
+    db_user = create_or_get_user(userDict)
+
+    return db_user
