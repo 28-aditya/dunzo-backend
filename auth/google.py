@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response
 from fastapi.responses import RedirectResponse
 from dotenv import load_dotenv
 from services.user_service import create_or_get_user
@@ -11,6 +11,7 @@ import httpx
 router = APIRouter()
 
 load_dotenv()
+FRONTEND_URL = os.getenv("APP_BASE_URL")
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
@@ -75,13 +76,19 @@ async def google_callback(code: str):
     db_user = create_or_get_user(userDict)
 
     jwt_payload = {
-        "user_id":db_user.id,
+        "user_id": str(db_user.id),
         "exp": (datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()
     }
 
     current_session_token = create_token(jwt_payload)
 
-    return {
-        "access_token": current_session_token,
-        "token_type": "bearer"
-    }
+    response=RedirectResponse(url="http://localhost:5500/pages/dashboard.html")
+
+    response.set_cookie(
+        key="access_token",
+        value=current_session_token,
+        httponly=True,
+        secure=False,
+        samesite="lax"
+    )
+    return response

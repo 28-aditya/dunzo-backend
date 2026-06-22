@@ -11,7 +11,7 @@ class User(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
 
     email = Column(String, unique=True, nullable=False, index=True)
-    name = Column(String)
+    name = Column(String, nullable=False)
 
     auth_provider = Column(String)
     provider_user_id = Column(String, nullable=True, index=True)
