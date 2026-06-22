@@ -84,7 +84,7 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
 
     current_session_token = create_token(jwt_payload)
 
-    response=RedirectResponse(url=os.getenv("GOOGLE_REDIRECT_URL"))
+    response=RedirectResponse(url=f"{os.getenv("APP_BASE_URL")}/pages/dashboard.html")
 
     response.set_cookie(
         key="access_token",
