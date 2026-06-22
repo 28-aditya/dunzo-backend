@@ -1,9 +1,11 @@
-from fastapi import APIRouter, HTTPException, Response
+from fastapi import APIRouter, HTTPException, Response, Depends
 from fastapi.responses import RedirectResponse
+from sqlalchemy.orm import Session
 from dotenv import load_dotenv
 from services.user_service import create_or_get_user
 from datetime import timedelta, timezone, datetime
 from core.security import create_token, verify_token
+from db.deps import get_db
 
 import os
 import httpx
@@ -38,7 +40,7 @@ def google_login():
 
 
 @router.get("/auth/google/callback")
-async def google_callback(code: str):
+async def google_callback(code: str, db: Session = Depends(get_db)):
     # Exchange code for tokens
     async with httpx.AsyncClient() as client:
         token_res = await client.post(GOOGLE_TOKEN_URL, data={
@@ -73,7 +75,7 @@ async def google_callback(code: str):
         "provider_user_id": user.get("sub")
     }
 
-    db_user = create_or_get_user(userDict)
+    db_user = create_or_get_user(userDict, db)
 
     jwt_payload = {
         "user_id": str(db_user.id),
@@ -82,7 +84,7 @@ async def google_callback(code: str):
 
     current_session_token = create_token(jwt_payload)
 
-    response=RedirectResponse(url="http://localhost:5500/pages/dashboard.html")
+    response=RedirectResponse(url=os.getenv("GOOGLE_REDIRECT_URL"))
 
     response.set_cookie(
         key="access_token",

@@ -1,5 +1,5 @@
 from sqlalchemy import select, Column, String, Integer, DateTime, Date
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 from db.models import User
 from passlib.context import CryptContext
 from datetime import datetime, timezone
@@ -11,9 +11,8 @@ import os
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-def create_or_get_user(userDict):
+def create_or_get_user(userDict, db: Session):
 
-    db = SessionLocal()
     try:
         user = db.query(User).filter(User.email == userDict["email"]).first()
         
