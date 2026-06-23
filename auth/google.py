@@ -1,96 +1,86 @@
-from fastapi import APIRouter, HTTPException, Response, Depends
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
-from dotenv import load_dotenv
-from services.user_service import create_or_get_user
-from datetime import timedelta, timezone, datetime
-from core.security import create_token, verify_token
-from db.deps import get_db
-
-import os
+from datetime import datetime, timezone, timedelta
 import httpx
+import os
+
+from db.deps import get_db
+from services.user_service import create_or_get_user
+from core.security import create_token
 
 router = APIRouter()
 
-load_dotenv()
-FRONTEND_URL = os.getenv("APP_BASE_URL")
-
-GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
-GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
-GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
-
-GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
 
+
 @router.get("/auth/google/login")
-
 def google_login():
-    params = {
-        "client_id": GOOGLE_CLIENT_ID,
-        "redirect_uri": GOOGLE_REDIRECT_URI,
-        "response_type": "code",
-        "scope": "openid email profile",
-        "access_type": "offline"
-    }
-
-    from urllib.parse import urlencode
-    query = urlencode(params)
-    return RedirectResponse(f"{GOOGLE_AUTH_URL}?{query}")
+    return RedirectResponse(
+        "https://accounts.google.com/o/oauth2/v2/auth"
+    )
 
 
 @router.get("/auth/google/callback")
 async def google_callback(code: str, db: Session = Depends(get_db)):
-    # Exchange code for tokens
+
     async with httpx.AsyncClient() as client:
         token_res = await client.post(GOOGLE_TOKEN_URL, data={
             "code": code,
-            "client_id": GOOGLE_CLIENT_ID,
-            "client_secret": GOOGLE_CLIENT_SECRET,
-            "redirect_uri": GOOGLE_REDIRECT_URI,
+            "client_id": os.getenv("GOOGLE_CLIENT_ID"),
+            "client_secret": os.getenv("GOOGLE_CLIENT_SECRET"),
+            "redirect_uri": os.getenv("GOOGLE_REDIRECT_URI"),
             "grant_type": "authorization_code",
         })
+
+    if token_res.status_code != 200:
+        raise HTTPException(400, "Google token exchange failed")
 
     tokens = token_res.json()
     access_token = tokens.get("access_token")
 
     if not access_token:
-        raise HTTPException(status_code=400, detail="Failed to get access token")
+        raise HTTPException(400, "Missing access token")
 
-    # Fetch user info from Google
     async with httpx.AsyncClient() as client:
         user_res = await client.get(
             GOOGLE_USERINFO_URL,
             headers={"Authorization": f"Bearer {access_token}"}
         )
 
+    if user_res.status_code != 200:
+        raise HTTPException(400, "Failed to fetch user info")
+
     user = user_res.json()
 
-    # `user` now has: email, name, picture, sub (Google's user ID)
-    # Next step: save to DB and return a JWT — placeholder for now
-    userDict= {
-        "email": user.get("email"),
-        "name": user.get("name"),
+    email = user.get("email")
+    name = user.get("name")
+
+    if not email:
+        raise HTTPException(400, "Google account has no email")
+
+    db_user = create_or_get_user({
+        "email": email,
+        "name": name,
         "auth_provider": "google",
         "provider_user_id": user.get("sub")
-    }
+    }, db)
 
-    db_user = create_or_get_user(userDict, db)
-
-    jwt_payload = {
+    token = create_token({
         "user_id": str(db_user.id),
-        "exp": (datetime.now(timezone.utc) + timedelta(hours=1)).timestamp()
-    }
+        "exp": int((datetime.now(timezone.utc) + timedelta(hours=1)).timestamp())
+    })
 
-    current_session_token = create_token(jwt_payload)
-
-    response=RedirectResponse(url=f"{os.getenv("APP_BASE_URL")}/pages/dashboard.html")
+    response = RedirectResponse(
+        url="http://localhost:5500/pages/dashboard.html"
+    )
 
     response.set_cookie(
         key="access_token",
-        value=current_session_token,
+        value=token,
         httponly=True,
-        secure=False,
         samesite="lax"
     )
+
     return response
