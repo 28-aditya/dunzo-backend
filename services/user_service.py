@@ -5,6 +5,8 @@ from passlib.context import CryptContext
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 from db.session import Base, engine, SessionLocal
+from fastapi import Request, HTTPException
+from core.security import verify_token
 
 import os
 
@@ -35,3 +37,13 @@ def create_or_get_user(userDict, db: Session):
         return new_user
     finally:
         db.close()
+
+def get_current_user(request: Request):
+    token = request.cookies.get("access_token")
+
+    if not token:
+        raise HTTPException(status_code=401, detail="Not Authenticated")
+    payload = verify_token(token)
+    if payload is None:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    return payload
