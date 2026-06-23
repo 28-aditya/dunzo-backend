@@ -1,11 +1,12 @@
 from sqlalchemy import select, Column, String, Integer, DateTime, Date
 from sqlalchemy.orm import sessionmaker, Session
-from db.models import User
+from db.models import User, Task, Note, UserSettings
+from db.deps import get_db
 from passlib.context import CryptContext
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 from db.session import Base, engine, SessionLocal
-from fastapi import Request, HTTPException
+from fastapi import Request, HTTPException, Depends, router
 from core.security import verify_token
 
 import os
@@ -13,7 +14,7 @@ import os
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-def create_or_get_user(userDict, db: Session):
+def create_or_get_user(userDict, db: Session = Depends(get_db)):
 
     try:
         user = db.query(User).filter(User.email == userDict["email"]).first()
@@ -37,13 +38,3 @@ def create_or_get_user(userDict, db: Session):
         return new_user
     finally:
         db.close()
-
-def get_current_user(request: Request):
-    token = request.cookies.get("access_token")
-
-    if not token:
-        raise HTTPException(status_code=401, detail="Not Authenticated")
-    payload = verify_token(token)
-    if payload is None:
-        raise HTTPException(status_code=401, detail="Invalid or expired token")
-    return payload
