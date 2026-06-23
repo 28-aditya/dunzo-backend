@@ -6,7 +6,7 @@ from passlib.context import CryptContext
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 from db.session import Base, engine, SessionLocal
-from fastapi import Request, HTTPException, Depends
+from fastapi import Depends
 from core.security import verify_token
 
 import os
