@@ -92,7 +92,8 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
         key="access_token",
         value=token,
         httponly=True,
-        samesite="lax"
+        samesite="lax",
+        domain="localhost"
     )
 
     return response
