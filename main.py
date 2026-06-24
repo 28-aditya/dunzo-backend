@@ -15,7 +15,7 @@ load_dotenv()
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins = os.getenv("APP_BASE_URL"),
+    allow_origins = [os.getenv("APP_BASE_URL")],
     allow_credentials = True,
     allow_methods=["*"],
     allow_headers = ["*"]
