@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from db.models import Task, Note, UserSettings
+from db.models import Task, Note, UserSettings, Category
 import uuid
 
 
@@ -27,3 +27,7 @@ def get_settings(db: Session, user_id: str):
         db.refresh(settings)
 
     return settings
+
+def get_categories(db: Session, user_id: str):
+    user_id = uuid.UUID(str(user_id))
+    return db.query(Category).filter(Category.user_id == user_id).all()
