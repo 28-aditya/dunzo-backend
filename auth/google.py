@@ -4,12 +4,16 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timezone, timedelta
 import httpx
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 from db.deps import get_db
 from services.user_service import create_or_get_user
 from core.security import create_token
 
 router = APIRouter()
+
 
 GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
 GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
@@ -32,6 +36,8 @@ def google_login():
 async def google_callback(code: str, db: Session = Depends(get_db)):
 
     async with httpx.AsyncClient() as client:
+        print("CLIENT_ID:", os.getenv("GOOGLE_CLIENT_ID"))
+        print("REDIRECT_URI:", os.getenv("GOOGLE_REDIRECT_URI"))
         token_res = await client.post(GOOGLE_TOKEN_URL, data={
             "code": code,
             "client_id": os.getenv("GOOGLE_CLIENT_ID"),
