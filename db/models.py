@@ -24,11 +24,14 @@ class Task(Base):
     __tablename__ = "tasks"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
     title = Column(String, nullable=False)
     description = Column(String, nullable=True)
+    category = Column(String, nullable=True)      # add this
+
+    due_date = Column(String, nullable=True)       # add this
+    due_time = Column(String, nullable=True)       # add this
 
     created_at = Column(DateTime, default=datetime.utcnow)
     is_completed = Column(Boolean, default=False)
