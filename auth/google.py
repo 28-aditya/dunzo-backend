@@ -17,9 +17,15 @@ GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
 
 @router.get("/auth/google/login")
 def google_login():
-    return RedirectResponse(
-        "https://accounts.google.com/o/oauth2/v2/auth"
-    )
+    params = {
+        "client_id": os.getenv("GOOGLE_CLIENT_ID"),
+        "redirect_uri": os.getenv("GOOGLE_REDIRECT_URI"),
+        "response_type": "code",
+        "scope": "openid email profile",
+        "access_type": "offline",
+    }
+    query_string = "&".join(f"{k}={v}" for k, v in params.items())
+    return RedirectResponse(f"https://accounts.google.com/o/oauth2/v2/auth?{query_string}")
 
 
 @router.get("/auth/google/callback")
@@ -73,7 +79,7 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
     })
 
     response = RedirectResponse(
-        url="http://localhost:5500/pages/dashboard.html"
+        url=f"{os.getenv("APP_BASE_URL")}/pages/dashboard.html"
     )
 
     response.set_cookie(
