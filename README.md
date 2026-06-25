@@ -203,8 +203,6 @@ All operations:
         "current_view": "dashboard"
         }
 ```
-```md id="fullmd1"
-# 🚀 dunzo backend
 
 ## 🏗 Architecture
 
@@ -236,38 +234,37 @@ PostgreSQL Database
 
 ```
 
-app/
-├── main.py
-├── core/
-│   ├── config.py
-│   ├── security.py
-│   ├── auth_dependencies.py
-├── auth/
-│   ├── google_oauth.py
-│   ├── github_oauth.py
-├── routes/
-│   ├── user.py
-│   ├── tasks.py
-│   ├── notes.py
-│   ├── settings.py
-├── services/
-│   ├── user_service.py
-│   ├── task_service.py
-│   ├── note_service.py
-│   ├── settings_service.py
-│   ├── data_service.py
-├── schemas/
-│   ├── user.py
-│   ├── task.py
-│   ├── note.py
-│   ├── settings.py
-├── db/
-│   ├── models.py
-│   ├── session.py
-│   ├── base.py
-├── utils/
-│   ├── helpers.py
-│   ├── serialization.py
+-        app/
+-        ├── main.py
+-        ├── core/
+-        │   ├── config.py
+-        │   ├── security.py
+-        │   ├── auth.py
+-        ├── auth/
+-        │   ├── google_oauth.py
+-        ├── routes/
+-        │   ├── me.py
+-        │   ├── tasks.py
+-        │   ├── notes.py
+-        │   ├── settings.py
+-        ├── services/
+-        │   ├── user_service.py
+-        │   ├── task_service.py
+-        │   ├── note_service.py
+-        │   ├── settings_service.py
+-        │   ├── data_service.py
+-        ├── schemas/
+-        │   ├── user.py
+-        │   ├── task.py
+-        │   ├── note.py
+-        │   ├── settings.py
+-        ├── db/
+-        │   ├── models.py
+-        │   ├── session.py
+-        │   ├── deps.py
+-        ├── utils/
+-        │   ├── helpers.py
+
 
 ```
 
