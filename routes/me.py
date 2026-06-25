@@ -28,3 +28,14 @@ def get_me(
         "settings": to_dict(get_settings(db, user.id))
     }
 
+@router.put("/user/state")
+def update_user_state(
+    state: UserStateUpdate,
+    db: Session = Depends(get_db),
+    user=Depends(get_current_user)
+):
+    return user_service.update_user_state(
+        db,
+        user.id,
+        state.current_view
+    )
