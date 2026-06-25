@@ -20,6 +20,8 @@ class User(Base):
 
     created_at = Column(DateTime, server_default=func.now())
 
+    current_view = Column(String, default="dashboard", nullable=False)
+
 class Task(Base):
     __tablename__ = "tasks"
 
@@ -28,13 +30,15 @@ class Task(Base):
 
     title = Column(String, nullable=False)
     description = Column(String, nullable=True)
-    category = Column(String, nullable=True)      # add this
+    category = Column(String, nullable=True)
 
-    due_date = Column(String, nullable=True)       # add this
-    due_time = Column(String, nullable=True)       # add this
+    due_date = Column(String, nullable=True)       
+    due_time = Column(String, nullable=True)       
 
     created_at = Column(DateTime, default=datetime.utcnow)
     is_completed = Column(Boolean, default=False)
+
+    is_archived = Column(Boolean, default=False)
 
 class Note(Base):
     __tablename__ = "notes"
