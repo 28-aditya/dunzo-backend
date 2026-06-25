@@ -5,6 +5,9 @@ from db.deps import get_db
 from core.auth import get_current_user
 from services.data_service import get_notes, get_tasks, get_settings, get_categories
 from utils.helpers import to_dict
+from db.models import User
+from schemas.user import UserStateUpdate
+from services import user_service
 
 router = APIRouter()
 
@@ -24,3 +27,4 @@ def get_me(
         "added_categories": [to_dict(c) for c in get_categories(db, user.id)],
         "settings": to_dict(get_settings(db, user.id))
     }
+
