@@ -8,7 +8,8 @@ from services import note_service
 
 router = APIRouter(prefix="/api/notes")
 
-@router.post("")
+
+@router.post("/")
 def create_note(
     note: NoteCreate,
     db: Session = Depends(get_db),
@@ -19,7 +20,7 @@ def create_note(
 
 @router.put("/{note_id}")
 def update_note(
-    note_id: int,
+    note_id: str,
     note: NoteUpdate,
     db: Session = Depends(get_db),
     user=Depends(get_current_user)
@@ -29,7 +30,7 @@ def update_note(
 
 @router.delete("/{note_id}")
 def delete_note(
-    note_id: int,
+    note_id: str,
     db: Session = Depends(get_db),
     user=Depends(get_current_user)
 ):

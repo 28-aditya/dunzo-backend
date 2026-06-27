@@ -8,7 +8,8 @@ from services import task_service
 
 router = APIRouter(prefix="/api/tasks")
 
-@router.post("")
+
+@router.post("/")
 def create_task(
     task: TaskCreate,
     db: Session = Depends(get_db),
@@ -19,7 +20,7 @@ def create_task(
 
 @router.put("/{task_id}")
 def update_task(
-    task_id: int,
+    task_id: str,
     task: TaskUpdate,
     db: Session = Depends(get_db),
     user=Depends(get_current_user)
@@ -29,7 +30,7 @@ def update_task(
 
 @router.delete("/{task_id}")
 def delete_task(
-    task_id: int,
+    task_id: str,
     db: Session = Depends(get_db),
     user=Depends(get_current_user)
 ):
