@@ -6,6 +6,5 @@ class NoteCreate(BaseModel):
     content: str
 
 class NoteUpdate(BaseModel):
-    id: int
     title: Optional[str] = ""
     content: str
