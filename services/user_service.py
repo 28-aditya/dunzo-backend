@@ -6,53 +6,38 @@ import uuid
 from fastapi import HTTPException
 
 
-def create_or_get_user(userDict, db: Session):
-
+def create_or_get_user(userDict: dict, db: Session) -> User:
     user = db.query(User).filter(User.email == userDict["email"]).first()
 
     if user:
         return user
 
     new_user = User(
-        email=userDict["email"],
-        name=userDict.get("name"),
-        auth_provider=userDict.get("auth_provider"),
-        created_at=datetime.now(timezone.utc),
-        password_hash=userDict.get("password_hash"),
-        provider_user_id=userDict.get("provider_user_id")
+        email            = userDict["email"],
+        name             = userDict.get("name") or userDict["email"].split("@")[0],
+        auth_provider    = userDict.get("auth_provider"),
+        created_at       = datetime.now(timezone.utc),
+        password_hash    = userDict.get("password_hash"),
+        provider_user_id = userDict.get("provider_user_id"),
+        is_verified      = userDict.get("is_verified", False),
     )
 
     db.add(new_user)
-
-    # create default settings row (IMPORTANT)
-    db.add(
-        UserSettings(
-            user_id=new_user.id
-        )
-    )
-
+    db.add(UserSettings(user_id=new_user.id))
     db.commit()
     db.refresh(new_user)
 
     return new_user
 
 
-def update_user_state(
-    current_view: UserStateUpdate,
-    user_id: str,
-    db: Session
-):
+def update_user_state(current_view: UserStateUpdate, user_id: str, db: Session) -> User:
+    user = db.query(User).filter(User.id == uuid.UUID(str(user_id))).first()
 
-    existing = db.query(User).filter(
-        User.id == uuid.UUID(str(user_id))
-    ).first()
-
-    if not existing:
+    if not user:
         raise HTTPException(status_code=404, detail="User not found")
 
-    existing.current_view = current_view.current_view
-
+    user.current_view = current_view.current_view
     db.commit()
-    db.refresh(existing)
+    db.refresh(user)
 
-    return existing
+    return user
