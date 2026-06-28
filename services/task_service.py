@@ -6,9 +6,13 @@ from datetime import datetime
 import uuid
 
 
-def create_task(db: Session, user_id: str, task: TaskCreate):
+def to_uuid(val) -> uuid.UUID:
+    return val if isinstance(val, uuid.UUID) else uuid.UUID(str(val))
+
+
+def create_task(db: Session, user_id, task: TaskCreate):
     new_task = Task(
-        user_id=uuid.UUID(user_id),
+        user_id=to_uuid(user_id),
         title=task.title,
         description=task.description,
         category=task.category,
@@ -24,34 +28,27 @@ def create_task(db: Session, user_id: str, task: TaskCreate):
     return new_task
 
 
-def update_task(db: Session, user_id: str, task_id: str, task: TaskUpdate):
+def update_task(db: Session, user_id, task_id: str, task: TaskUpdate):
     existing = db.query(Task).filter(
-        Task.id == uuid.UUID(task_id),
-        Task.user_id == uuid.UUID(user_id)
+        Task.id == to_uuid(task_id),
+        Task.user_id == to_uuid(user_id)
     ).first()
 
     if not existing:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    # safe partial updates
     if task.title is not None:
         existing.title = task.title
-
     if task.description is not None:
         existing.description = task.description
-
     if task.category is not None:
         existing.category = task.category
-
     if task.due_date is not None:
         existing.due_date = task.due_date
-
     if task.due_time is not None:
         existing.due_time = task.due_time
-
     if task.status is not None:
         existing.status = task.status
-
     if task.is_archived is not None:
         existing.is_archived = task.is_archived
 
@@ -62,21 +59,17 @@ def update_task(db: Session, user_id: str, task_id: str, task: TaskUpdate):
     return existing
 
 
-def delete_task(db: Session, user_id: str, task_id: str):
-    task_uuid = uuid.UUID(task_id)
-    user_uuid = uuid.UUID(user_id)
-
+def delete_task(db: Session, user_id, task_id: str):
     existing = db.query(Task).filter(
-        Task.id == task_uuid,
-        Task.user_id == user_uuid
+        Task.id == to_uuid(task_id),
+        Task.user_id == to_uuid(user_id)
     ).first()
 
     if not existing:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    # clean up linked tasks (important for your Note ↔ Task system)
     db.query(LinkedTasks).filter(
-        LinkedTasks.task_id == task_uuid
+        LinkedTasks.task_id == to_uuid(task_id)
     ).delete()
 
     db.delete(existing)

@@ -1,16 +1,14 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from db.models import LinkedTasks, Note, Task
-import uuid
+from utils import to_uuid
 
 
-def add_task_to_note(db: Session, user_id: str, note_id: str, task_id: str):
+def add_task_to_note(db: Session, user_id, note_id: str, task_id: str):
+    note_uuid = to_uuid(note_id)
+    task_uuid = to_uuid(task_id)
+    user_uuid = to_uuid(user_id)
 
-    note_uuid = uuid.UUID(note_id)
-    task_uuid = uuid.UUID(task_id)
-    user_uuid = uuid.UUID(str(user_id))
-
-    # verify note belongs to user
     note = db.query(Note).filter(
         Note.id == note_uuid,
         Note.user_id == user_uuid
@@ -19,7 +17,6 @@ def add_task_to_note(db: Session, user_id: str, note_id: str, task_id: str):
     if not note:
         raise HTTPException(status_code=404, detail="Note not found")
 
-    # verify task belongs to user
     task = db.query(Task).filter(
         Task.id == task_uuid,
         Task.user_id == user_uuid
@@ -28,7 +25,6 @@ def add_task_to_note(db: Session, user_id: str, note_id: str, task_id: str):
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
-    # prevent duplicates
     existing_link = db.query(LinkedTasks).filter(
         LinkedTasks.note_id == note_uuid,
         LinkedTasks.task_id == task_uuid
@@ -37,7 +33,6 @@ def add_task_to_note(db: Session, user_id: str, note_id: str, task_id: str):
     if existing_link:
         raise HTTPException(status_code=400, detail="Task already linked")
 
-    # enforce max 4 tasks per note
     count = db.query(LinkedTasks).filter(
         LinkedTasks.note_id == note_uuid
     ).count()
@@ -45,10 +40,7 @@ def add_task_to_note(db: Session, user_id: str, note_id: str, task_id: str):
     if count >= 4:
         raise HTTPException(status_code=400, detail="Max 4 tasks per note reached")
 
-    link = LinkedTasks(
-        note_id=note_uuid,
-        task_id=task_uuid
-    )
+    link = LinkedTasks(note_id=note_uuid, task_id=task_uuid)
 
     db.add(link)
     db.commit()
@@ -57,16 +49,11 @@ def add_task_to_note(db: Session, user_id: str, note_id: str, task_id: str):
     return link
 
 
-def remove_task_from_note(db: Session, user_id: str, note_id: str, task_id: str):
-
-    note_uuid = uuid.UUID(note_id)
-    task_uuid = uuid.UUID(task_id)
-    user_uuid = uuid.UUID(str(user_id))
-
+def remove_task_from_note(db: Session, user_id, note_id: str, task_id: str):
     link = db.query(LinkedTasks).join(Note).filter(
-        LinkedTasks.note_id == note_uuid,
-        LinkedTasks.task_id == task_uuid,
-        Note.user_id == user_uuid
+        LinkedTasks.note_id == to_uuid(note_id),
+        LinkedTasks.task_id == to_uuid(task_id),
+        Note.user_id == to_uuid(user_id)
     ).first()
 
     if not link:

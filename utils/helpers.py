@@ -17,3 +17,6 @@ def to_dict(obj) -> dict:
             result[c.name] = val
 
     return result
+
+def to_uuid(val) -> uuid.UUID:
+    return val if isinstance(val, uuid.UUID) else uuid.UUID(str(val))

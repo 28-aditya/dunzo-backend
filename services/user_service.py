@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from db.models import User, UserSettings
 from schemas.user import UserStateUpdate
 from datetime import datetime, timezone
-import uuid
+from utils import to_uuid
 from fastapi import HTTPException
 
 
@@ -30,8 +30,8 @@ def create_or_get_user(userDict: dict, db: Session) -> User:
     return new_user
 
 
-def update_user_state(current_view: UserStateUpdate, user_id: str, db: Session) -> User:
-    user = db.query(User).filter(User.id == uuid.UUID(str(user_id))).first()
+def update_user_state(current_view: UserStateUpdate, user_id, db: Session) -> User:
+    user = db.query(User).filter(User.id == to_uuid(user_id)).first()
 
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
