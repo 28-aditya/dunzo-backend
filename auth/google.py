@@ -85,7 +85,7 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
     })
 
     response = RedirectResponse(
-        url=f"{os.getenv("APP_BASE_URL")}/pages/dashboard.html"
+        url=f"{os.getenv('APP_BASE_URL')}/pages/dashboard.html"
     )
 
     response.set_cookie(
