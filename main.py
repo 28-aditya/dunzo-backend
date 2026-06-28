@@ -4,8 +4,7 @@ from dotenv import load_dotenv
 import os
 
 load_dotenv()
-load_dotenv()
-print("CORS origin:", os.getenv("APP_BASE_URL"))  # add this temporarily
+
 from auth.google     import router as google_router
 from auth.email_auth import router as email_router
 from db.session      import Base, engine
