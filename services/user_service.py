@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from db.models import User, UserSettings
 from schemas.user import UserStateUpdate
 from datetime import datetime, timezone
-from utils import to_uuid
+from utils.helpers import to_uuid
 from fastapi import HTTPException
 
 

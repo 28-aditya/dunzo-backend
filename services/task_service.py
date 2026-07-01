@@ -3,11 +3,8 @@ from fastapi import HTTPException
 from db.models import Task, LinkedTasks
 from schemas.task import TaskCreate, TaskUpdate
 from datetime import datetime
+from utils.helpers import to_uuid
 import uuid
-
-
-def to_uuid(val) -> uuid.UUID:
-    return val if isinstance(val, uuid.UUID) else uuid.UUID(str(val))
 
 
 def create_task(db: Session, user_id, task: TaskCreate):

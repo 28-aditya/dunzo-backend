@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from db.models import UserSettings
 from schemas.settings import SettingsUpdate
-from utils import to_uuid
+from utils.helpers import to_uuid
 
 
 def update_settings(db: Session, user_id, settings: SettingsUpdate):

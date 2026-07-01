@@ -3,7 +3,7 @@ from fastapi import HTTPException
 from db.models import Note, LinkedTasks
 from schemas.note import NoteCreate, NoteUpdate
 from datetime import datetime
-from utils import to_uuid
+from utils.helpers import to_uuid
 
 
 def create_note(db: Session, user_id, note: NoteCreate):

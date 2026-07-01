@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from db.models import LinkedTasks, Note, Task
-from utils import to_uuid
+from utils.helpers import to_uuid
 
 
 def add_task_to_note(db: Session, user_id, note_id: str, task_id: str):

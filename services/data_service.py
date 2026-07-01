@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from db.models import Task, Note, UserSettings, Category, LinkedTasks
-from utils import to_uuid
+from utils.helpers import to_uuid
 
 
 def get_tasks(db: Session, user_id):
