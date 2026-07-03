@@ -10,7 +10,8 @@ load_dotenv()
 
 from db.deps import get_db
 from services.user_service import create_or_get_user
-from core.security import create_token
+from services.auth_service import issue_refresh_token, REFRESH_TOKEN_TTL_DAYS
+from core.security import create_access_token
 
 router = APIRouter()
 
@@ -79,10 +80,8 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
         "provider_user_id": user.get("sub")
     }, db)
 
-    token = create_token({
-        "user_id": str(db_user.id),
-        "exp": int((datetime.now(timezone.utc) + timedelta(hours=1)).timestamp())
-    })
+    access_token  = create_access_token(db_user.id)
+    refresh_token = issue_refresh_token(db, db_user.id)
 
     response = RedirectResponse(
         url=f"{os.getenv('APP_BASE_URL')}/pages/dashboard.html"
@@ -90,10 +89,19 @@ async def google_callback(code: str, db: Session = Depends(get_db)):
 
     response.set_cookie(
         key="access_token",
-        value=token,
+        value=access_token,
         httponly=True,
         samesite="lax",
-        domain="localhost"
+        domain="localhost",
+        max_age=1800,
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        samesite="lax",
+        domain="localhost",
+        max_age=REFRESH_TOKEN_TTL_DAYS * 86400,
     )
 
     return response
