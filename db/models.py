@@ -41,7 +41,9 @@ class Task(Base):
     due_time = Column(String, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow) 
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    completed_at = Column(DateTime, nullable=True)
 
     is_archived = Column(Boolean, default=False)
 
@@ -112,3 +114,16 @@ class LinkedTasks(Base):
 
     note = relationship("Note", back_populates="linked_tasks")
     task = relationship("Task", back_populates="linked_tasks")
+
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_tokens"
+
+    id      = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
+
+    token_hash = Column(String, nullable=False, unique=True, index=True)
+
+    created_at = Column(DateTime, default=datetime.utcnow)
+    expires_at = Column(DateTime, nullable=False)
+    revoked    = Column(Boolean, default=False, nullable=False)
