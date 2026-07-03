@@ -16,7 +16,8 @@ def create_task(db: Session, user_id, task: TaskCreate):
         due_date=task.due_date,
         due_time=task.due_time,
         status=task.status,
-        is_archived=False
+        is_archived=False,
+        completed_at=datetime.utcnow() if task.status == "done" else None
     )
 
     db.add(new_task)
@@ -44,8 +45,17 @@ def update_task(db: Session, user_id, task_id: str, task: TaskUpdate):
         existing.due_date = task.due_date
     if task.due_time is not None:
         existing.due_time = task.due_time
+
     if task.status is not None:
+        # Only stamp/clear completed_at on an actual status transition,
+        # so editing an already-done task doesn't reset "time since
+        # last completion".
+        if task.status == "done" and existing.status != "done":
+            existing.completed_at = datetime.utcnow()
+        elif task.status != "done" and existing.status == "done":
+            existing.completed_at = None
         existing.status = task.status
+
     if task.is_archived is not None:
         existing.is_archived = task.is_archived
 
