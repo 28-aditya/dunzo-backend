@@ -7,8 +7,9 @@ load_dotenv()
 
 from auth.google     import router as google_router
 from auth.email_auth import router as email_router
+from auth.session    import router as session_router
 from db.session      import Base, engine
-from routes          import me, notes, tasks, settings, linked_task
+from routes          import me, notes, tasks, settings, linked_task, categories
 
 app = FastAPI()
 
@@ -24,11 +25,13 @@ app.add_middleware(
 
 app.include_router(google_router)
 app.include_router(email_router)
+app.include_router(session_router)
 app.include_router(tasks.router)
 app.include_router(notes.router)
 app.include_router(settings.router)
 app.include_router(me.router)
 app.include_router(linked_task.router)
+app.include_router(categories.router)
 
 @app.on_event("startup")
 def startup():
