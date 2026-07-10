@@ -4,10 +4,13 @@ from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 import os
 import secrets
-import hashlib
+import bcrypt
 
 load_dotenv()
+
 JWT_SECRET = os.getenv("JWT_SECRET")
+if not JWT_SECRET:
+    raise RuntimeError("JWT_SECRET environment variable is required")
 
 
 def create_token(payload: dict) -> str:
@@ -25,8 +28,31 @@ def generate_refresh_token() -> str:
     return secrets.token_urlsafe(64)
 
 
+def _hash_value(value: str) -> str:
+    return bcrypt.hashpw(value.encode(), bcrypt.gensalt()).decode()
+
+
+def _verify_hash(value: str, hashed: str) -> bool:
+    try:
+        return bcrypt.checkpw(value.encode(), hashed.encode())
+    except ValueError:
+        return False
+
+
+def hash_password(password: str) -> str:
+    return _hash_value(password)
+
+
+def verify_password(password: str, password_hash: str) -> bool:
+    return _verify_hash(password, password_hash)
+
+
 def hash_refresh_token(token: str) -> str:
-    return hashlib.sha256(token.encode()).hexdigest()
+    return _hash_value(token)
+
+
+def verify_refresh_token(token: str, token_hash: str) -> bool:
+    return _verify_hash(token, token_hash)
 
 
 def verify_token(token: str) -> dict | None:
@@ -34,15 +60,6 @@ def verify_token(token: str) -> dict | None:
         return jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
     except (ExpiredSignatureError, InvalidTokenError):
         return None
-
-
-def hash_password(password: str) -> str:
-    salt = os.getenv("PASSWORD_SALT", "dunzo-default-salt")
-    return hashlib.sha256(f"{salt}{password}".encode()).hexdigest()
-
-
-def verify_password(password: str, password_hash: str) -> bool:
-    return hash_password(password) == password_hash
 
 
 def generate_verification_token() -> str:
