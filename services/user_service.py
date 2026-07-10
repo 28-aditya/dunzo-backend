@@ -2,7 +2,6 @@ import uuid
 from sqlalchemy.orm import Session
 from db.models import User, UserSettings
 from schemas.user import UserStateUpdate
-from datetime import datetime, timezone
 from utils.helpers import to_uuid
 from fastapi import HTTPException
 
@@ -11,6 +10,11 @@ def create_or_get_user(userDict: dict, db: Session) -> User:
     user = db.query(User).filter(User.email == userDict["email"]).first()
 
     if user:
+        if user.auth_provider == "email" and user.password_hash:
+            raise HTTPException(
+                status_code=409,
+                detail="An account with this email already exists. Sign in with email and password.",
+            )
         return user
 
     # Generate the id ourselves instead of relying on the column default.

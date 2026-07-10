@@ -2,8 +2,7 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from db.models import Note, LinkedTasks
 from schemas.note import NoteCreate, NoteUpdate
-from datetime import datetime
-from utils.helpers import to_uuid
+from utils.helpers import to_uuid, utc_now
 
 
 def create_note(db: Session, user_id, note: NoteCreate):
@@ -33,7 +32,7 @@ def update_note(db: Session, user_id, note_id: str, note: NoteUpdate):
     if note.content is not None:
         existing.content = note.content
 
-    existing.updated_at = datetime.utcnow()
+    existing.updated_at = utc_now()
 
     db.commit()
     db.refresh(existing)

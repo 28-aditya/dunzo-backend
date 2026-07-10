@@ -2,9 +2,7 @@ from sqlalchemy.orm import Session
 from fastapi import HTTPException
 from db.models import Task, LinkedTasks
 from schemas.task import TaskCreate, TaskUpdate
-from datetime import datetime
-from utils.helpers import to_uuid
-import uuid
+from utils.helpers import to_uuid, utc_now
 
 
 def create_task(db: Session, user_id, task: TaskCreate):
@@ -17,7 +15,7 @@ def create_task(db: Session, user_id, task: TaskCreate):
         due_time=task.due_time,
         status=task.status,
         is_archived=False,
-        completed_at=datetime.utcnow() if task.status == "done" else None
+        completed_at=utc_now() if task.status == "done" else None
     )
 
     db.add(new_task)
@@ -51,7 +49,7 @@ def update_task(db: Session, user_id, task_id: str, task: TaskUpdate):
         # so editing an already-done task doesn't reset "time since
         # last completion".
         if task.status == "done" and existing.status != "done":
-            existing.completed_at = datetime.utcnow()
+            existing.completed_at = utc_now()
         elif task.status != "done" and existing.status == "done":
             existing.completed_at = None
         existing.status = task.status
@@ -59,7 +57,7 @@ def update_task(db: Session, user_id, task_id: str, task: TaskUpdate):
     if task.is_archived is not None:
         existing.is_archived = task.is_archived
 
-    existing.updated_at = datetime.utcnow()
+    existing.updated_at = utc_now()
 
     db.commit()
     db.refresh(existing)

@@ -1,4 +1,6 @@
+import uuid
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
 from db.models import LinkedTasks, Note, Task
 from utils.helpers import to_uuid
@@ -43,7 +45,11 @@ def add_task_to_note(db: Session, user_id, note_id: str, task_id: str):
     link = LinkedTasks(note_id=note_uuid, task_id=task_uuid)
 
     db.add(link)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="Task already linked")
     db.refresh(link)
 
     return link
