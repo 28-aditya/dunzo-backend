@@ -1,35 +1,24 @@
-import os
-from datetime import datetime, timezone, timedelta
+import uuid
+from datetime import datetime, timezone
 
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
-from dotenv import load_dotenv
 
-load_dotenv()
-
+from core.config import COOKIE_KWARGS, RATE_LIMIT_AUTH
+from core.limiter import limiter
+from core.security import create_access_token, hash_password, verify_password
 from db.deps import get_db
 from db.models import User, UserSettings
-from core.security import (
-    create_token,
-    hash_password,
-    verify_password,
-)
-from schemas.email_auth import (
-    RegisterRequest,
-    LoginRequest
-)
+from schemas.email_auth import RegisterRequest, LoginRequest
+from services.auth_service import issue_refresh_token, REFRESH_TOKEN_TTL_DAYS
 
 router = APIRouter(prefix="/auth/email")
 
 
-# ─────────────────────────────────────────
-# REGISTER
-# ─────────────────────────────────────────
-
 @router.post("/register")
-def register(body: RegisterRequest, db: Session = Depends(get_db)):
+@limiter.limit(RATE_LIMIT_AUTH)
+def register(request: Request, body: RegisterRequest, db: Session = Depends(get_db)):
     existing = db.query(User).filter(User.email == body.email).first()
     if existing:
         raise HTTPException(400, "Email already registered")
@@ -37,28 +26,40 @@ def register(body: RegisterRequest, db: Session = Depends(get_db)):
     if len(body.password) < 8:
         raise HTTPException(400, "Password must be at least 8 characters")
 
+    user_id = uuid.uuid4()
     db_user = User(
-        email         = body.email,
-        name          = body.name,
-        auth_provider = "email",
-        password_hash = hash_password(body.password),
-        is_verified   = True,
-        created_at    = datetime.now(timezone.utc),
+        id=user_id,
+        email=body.email,
+        name=body.name,
+        auth_provider="email",
+        password_hash=hash_password(body.password),
+        is_verified=True,
+        created_at=datetime.now(timezone.utc),
     )
     db.add(db_user)
-    db.add(UserSettings(user_id=db_user.id))
+    db.add(UserSettings(user_id=user_id))
     db.commit()
     db.refresh(db_user)
 
-    return {"message": "Account created. You can now sign in."}
+    access_token = create_access_token(db_user.id)
+    refresh_token = issue_refresh_token(db, db_user.id)
 
+    response = JSONResponse({"message": "Account created."})
+    response.set_cookie(
+        key="access_token", value=access_token, max_age=1800, **COOKIE_KWARGS
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        max_age=REFRESH_TOKEN_TTL_DAYS * 86400,
+        **COOKIE_KWARGS,
+    )
+    return response
 
-# ─────────────────────────────────────────
-# LOGIN
-# ─────────────────────────────────────────
 
 @router.post("/login")
-def login(body: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit(RATE_LIMIT_AUTH)
+def login(request: Request, body: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == body.email).first()
 
     if not user or not user.password_hash:
@@ -67,18 +68,18 @@ def login(body: LoginRequest, db: Session = Depends(get_db)):
     if not verify_password(body.password, user.password_hash):
         raise HTTPException(401, "Invalid email or password")
 
-    access_token = create_token({
-        "user_id": str(user.id),
-        "exp":     int((datetime.now(timezone.utc) + timedelta(hours=24)).timestamp()),
-    })
+    max_days = REFRESH_TOKEN_TTL_DAYS if body.remember else 1
+    access_token = create_access_token(user.id)
+    refresh_token = issue_refresh_token(db, user.id, expires_days=max_days)
 
     response = JSONResponse({"message": "Logged in"})
     response.set_cookie(
-        key="access_token",
-        value=access_token,
-        httponly=True,
-        samesite="lax",
-        domain="localhost",
-        max_age=86400,
+        key="access_token", value=access_token, max_age=1800, **COOKIE_KWARGS
+    )
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        max_age=max_days * 86400,
+        **COOKIE_KWARGS,
     )
     return response
