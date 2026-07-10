@@ -12,8 +12,9 @@ from services.data_service import (
 )
 from utils.helpers import to_dict
 from db.models import User
-from schemas.user import UserStateUpdate
 from services import user_service
+from schemas.user import UserStateUpdate, UserProfileUpdate
+from fastapi import HTTPException
 
 router = APIRouter()
 
@@ -72,3 +73,20 @@ def update_user_state(
         user.id,
         db
     )
+
+@router.put("/api/me/profile")
+def update_profile(
+    body: UserProfileUpdate,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user)
+):
+    if body.name is not None:
+        user.name = body.name
+    if body.email is not None:
+        existing = db.query(User).filter(User.email == body.email, User.id != user.id).first()
+        if existing:
+            raise HTTPException(400, "Email already in use")
+        user.email = body.email
+    db.commit()
+    db.refresh(user)
+    return {"id": str(user.id), "email": user.email, "name": user.name}
