@@ -1,5 +1,10 @@
-from datetime import datetime
+from datetime import datetime, timezone
 import uuid
+
+
+def utc_now() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
 
 def to_dict(obj) -> dict:
     result = {}
@@ -17,6 +22,7 @@ def to_dict(obj) -> dict:
             result[c.name] = val
 
     return result
+
 
 def to_uuid(val) -> uuid.UUID:
     return val if isinstance(val, uuid.UUID) else uuid.UUID(str(val))
