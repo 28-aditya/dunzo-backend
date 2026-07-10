@@ -1,9 +1,9 @@
 import uuid
-from datetime import datetime
-from sqlalchemy import Column, String, DateTime, Boolean, Integer, ForeignKey, func
+from sqlalchemy import Column, String, DateTime, Boolean, Integer, ForeignKey, func, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 from db.session import Base
+from utils.helpers import utc_now
 
 
 class User(Base):
@@ -40,8 +40,8 @@ class Task(Base):
     due_date = Column(String, nullable=True)
     due_time = Column(String, nullable=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
+    updated_at = Column(DateTime, default=utc_now, onupdate=utc_now)
 
     completed_at = Column(DateTime, nullable=True)
 
@@ -59,7 +59,7 @@ class Note(Base):
     title   = Column(String, nullable=True)
     content = Column(String, nullable=False)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
     updated_at = Column(DateTime)
 
     linked_tasks = relationship("LinkedTasks", back_populates="note",
@@ -73,7 +73,7 @@ class Category(Base):
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
     name       = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
 
 class UserSettings(Base):
@@ -98,19 +98,22 @@ class Notification(Base):
     message = Column(String)
 
     is_read    = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
     task_id = Column(UUID(as_uuid=True), ForeignKey("tasks.id"), nullable=True)
 
 
 class LinkedTasks(Base):
     __tablename__ = "linked_tasks"
+    __table_args__ = (
+        UniqueConstraint("note_id", "task_id", name="uq_linked_tasks_note_task"),
+    )
 
     id      = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     note_id = Column(UUID(as_uuid=True), ForeignKey("notes.id"), nullable=False, index=True)
     task_id = Column(UUID(as_uuid=True), ForeignKey("tasks.id"), nullable=False, index=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
 
     note = relationship("Note", back_populates="linked_tasks")
     task = relationship("Task", back_populates="linked_tasks")
@@ -124,6 +127,6 @@ class RefreshToken(Base):
 
     token_hash = Column(String, nullable=False, unique=True, index=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utc_now)
     expires_at = Column(DateTime, nullable=False)
     revoked    = Column(Boolean, default=False, nullable=False)
