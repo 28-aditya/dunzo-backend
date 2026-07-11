@@ -29,13 +29,22 @@ _cors_origins = [
     os.getenv("SECONDARY_CORS_ORIGIN"),
 ]
 
-_cors_origins = [origin for origin in _cors_origins if origin]
+_cors_origins = [
+    os.getenv("APP_BASE_URL"),
+    os.getenv("SECONDARY_CORS_ORIGIN"),
+]
 
-print("CORS:", _cors_origins)
+_cors_origins = [origin.rstrip("/") for origin in _cors_origins if origin]
+
+_cors_origin_regex = r"^https://dunzo(-[a-z0-9-]+)?\.vercel\.app$"
+
+print("CORS exact origins:", _cors_origins)
+print("CORS origin regex:", _cors_origin_regex)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
+    allow_origin_regex=_cors_origin_regex,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
