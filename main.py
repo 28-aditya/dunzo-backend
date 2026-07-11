@@ -24,13 +24,7 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 app.add_middleware(SlowAPIMiddleware)
 
-_cors_origins = [
-    origin for origin in (
-        os.getenv("APP_BASE_URL"),
-        os.getenv("SECONDARY_CORS_ORIGIN"),
-    )
-    if origin
-]
+_cors_origins = [os.getenv("APP_BASE_URL")]
 
 app.add_middleware(
     CORSMiddleware,
