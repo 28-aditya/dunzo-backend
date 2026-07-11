@@ -15,7 +15,7 @@ from auth.google     import router as google_router
 from auth.email_auth import router as email_router
 from auth.session    import router as session_router
 from db.session      import Base, engine
-from routes          import me, notes, tasks, settings, linked_task, categories
+from routes          import me, notes, tasks, settings, linked_task, categories, notifications
 from core.limiter    import limiter
 
 app = FastAPI()
@@ -49,6 +49,7 @@ app.include_router(settings.router)
 app.include_router(me.router)
 app.include_router(linked_task.router)
 app.include_router(categories.router)
+app.include_router(notifications.router)
 
 
 @app.on_event("startup")
