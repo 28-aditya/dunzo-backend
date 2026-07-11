@@ -31,6 +31,8 @@ _cors_origins = [
 
 _cors_origins = [origin for origin in _cors_origins if origin]
 
+print("CORS:", _cors_origins)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
