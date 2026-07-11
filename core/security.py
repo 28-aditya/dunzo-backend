@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from dotenv import load_dotenv
 import os
 import secrets
+import hashlib
 import bcrypt
 
 load_dotenv()
@@ -47,12 +48,25 @@ def verify_password(password: str, password_hash: str) -> bool:
     return _verify_hash(password, password_hash)
 
 
+# ─────────────────────────────────────────
+# LEGACY SHA-256 PASSWORD MIGRATION
+# ─────────────────────────────────────────
+
+def is_legacy_password_hash(password_hash: str) -> bool:
+    return not (password_hash or "").startswith(("$2a$", "$2b$", "$2y$"))
+
+
+def verify_password_legacy_sha256(password: str, password_hash: str) -> bool:
+    salt = os.getenv("PASSWORD_SALT", "dunzo-default-salt")
+    return hashlib.sha256(f"{salt}{password}".encode()).hexdigest() == password_hash
+
+
 def hash_refresh_token(token: str) -> str:
-    return _hash_value(token)
+    return hashlib.sha256(token.encode()).hexdigest()
 
 
 def verify_refresh_token(token: str, token_hash: str) -> bool:
-    return _verify_hash(token, token_hash)
+    return hashlib.sha256(token.encode()).hexdigest() == token_hash
 
 
 def verify_token(token: str) -> dict | None:
