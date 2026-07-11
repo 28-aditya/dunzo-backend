@@ -1,8 +1,11 @@
+from datetime import timedelta
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
-from db.models import Task, LinkedTasks
+from db.models import Task, LinkedTasks, Notification, UserSettings
 from schemas.task import TaskCreate, TaskUpdate
 from utils.helpers import to_uuid, utc_now
+
+AUTO_ARCHIVE_AFTER_DAYS = 5
 
 
 def create_task(db: Session, user_id, task: TaskCreate):
@@ -77,7 +80,39 @@ def delete_task(db: Session, user_id, task_id: str):
         LinkedTasks.task_id == to_uuid(task_id)
     ).delete()
 
+    db.query(Notification).filter(
+        Notification.task_id == to_uuid(task_id)
+    ).delete()
+
     db.delete(existing)
     db.commit()
 
     return {"deleted": task_id}
+
+
+def auto_archive_completed_tasks(db: Session, user_id):
+    """Archive tasks that were marked done more than AUTO_ARCHIVE_AFTER_DAYS
+    days ago. Runs on every /api/me read (no scheduler in this app), and
+    only does anything when the user has the "Auto-Archive Completed"
+    setting turned on.
+    """
+    uid = to_uuid(user_id)
+
+    settings = db.query(UserSettings).filter(
+        UserSettings.user_id == uid
+    ).first()
+
+    if not settings or not settings.auto_archive:
+        return
+
+    cutoff = utc_now() - timedelta(days=AUTO_ARCHIVE_AFTER_DAYS)
+
+    db.query(Task).filter(
+        Task.user_id == uid,
+        Task.status == "done",
+        Task.is_archived == False,
+        Task.completed_at.isnot(None),
+        Task.completed_at <= cutoff
+    ).update({"is_archived": True}, synchronize_session=False)
+
+    db.commit()
