@@ -13,6 +13,7 @@ from services.data_service import (
 from utils.helpers import to_dict
 from db.models import User
 from services import user_service
+from services import task_service
 from schemas.user import UserStateUpdate, UserProfileUpdate
 from fastapi import HTTPException
 
@@ -24,6 +25,8 @@ def get_me(
     db: Session = Depends(get_db),
     user: User = Depends(get_current_user)
 ):
+    task_service.auto_archive_completed_tasks(db, user.id)
+
     notes = get_notes(db, user.id)
     tasks = get_tasks(db, user.id)
 
