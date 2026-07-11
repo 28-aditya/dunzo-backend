@@ -7,7 +7,13 @@ from sqlalchemy.orm import Session
 
 from core.config import COOKIE_KWARGS, RATE_LIMIT_AUTH
 from core.limiter import limiter
-from core.security import create_access_token, hash_password, verify_password
+from core.security import (
+    create_access_token,
+    hash_password,
+    verify_password,
+    is_legacy_password_hash,
+    verify_password_legacy_sha256,
+)
 from db.deps import get_db
 from db.models import User, UserSettings
 from schemas.email_auth import RegisterRequest, LoginRequest
@@ -65,8 +71,16 @@ def login(request: Request, body: LoginRequest, db: Session = Depends(get_db)):
     if not user or not user.password_hash:
         raise HTTPException(401, "Invalid email or password")
 
-    if not verify_password(body.password, user.password_hash):
-        raise HTTPException(401, "Invalid email or password")
+    if is_legacy_password_hash(user.password_hash):
+        # Pre-bcrypt account. Verify against the old SHA-256 scheme, then
+        # transparently upgrade to bcrypt now that we have the plaintext.
+        if not verify_password_legacy_sha256(body.password, user.password_hash):
+            raise HTTPException(401, "Invalid email or password")
+        user.password_hash = hash_password(body.password)
+        db.commit()
+    else:
+        if not verify_password(body.password, user.password_hash):
+            raise HTTPException(401, "Invalid email or password")
 
     max_days = REFRESH_TOKEN_TTL_DAYS if body.remember else 1
     access_token = create_access_token(user.id)
