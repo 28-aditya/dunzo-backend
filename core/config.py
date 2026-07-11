@@ -12,7 +12,8 @@ RATE_LIMIT_REFRESH = os.getenv("RATE_LIMIT_REFRESH", "30/minute")
 # Shared cookie attributes for set/delete consistency.
 COOKIE_KWARGS = {
     "httponly": True,
-    "samesite": "lax",
+    "samesite": "none",
+    "secure": True,
     "domain": COOKIE_DOMAIN,
 }
 
