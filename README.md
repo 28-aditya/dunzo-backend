@@ -31,12 +31,14 @@ Production-ready **FastAPI + PostgreSQL backend** built with OAuth authenticatio
 
 dunzo backend is the server powering a productivity application with:
 
-- Google & GitHub OAuth authentication
-- JWT/session-based auth
+- Email/password authentication + Google & GitHub OAuth
+- JWT/session-based auth with refresh tokens
 - Fully separated service layer (no business logic in routes)
 - Resource-based REST API design
 - PostgreSQL persistence via SQLAlchemy
 - Clean frontend/backend separation
+- On-read notification generation (overdue / due-soon task alerts)
+- Auto-archiving of completed tasks
 
 Frontend is completely decoupled and consumes only HTTP APIs.
 
@@ -55,14 +57,14 @@ Frontend is completely decoupled and consumes only HTTP APIs.
 ---
 
 ### 👤 User System
-- OAuth-only authentication (no passwords stored)
+- Email/password registration and login, plus Google & GitHub OAuth
 - User profile:
   - name
   - email
-  - avatar (from provider)
-- Provider tracking (Google / GitHub)
+  - avatar (from provider, when applicable)
+- Provider tracking (local / Google / GitHub)
 - Persistent sessions across requests
-- Central `/api/me` snapshot endpoint
+- Central `/api/me` snapshot endpoint (also runs the auto-archive sweep)
 
 ---
 
@@ -76,7 +78,8 @@ Core productivity module for user task management.
 - Update tasks
 - Delete tasks
 - Mark complete / incomplete
-- Archive / unarchive tasks
+- Archive / unarchive tasks (manual, via `is_archived` on update)
+- Auto-archive: tasks completed 5+ days ago are archived automatically on `/api/me` reads, when the user's `auto_archive` setting is enabled
 - User-scoped isolation (strict per-user data)
 
 **Stored data:**
@@ -85,6 +88,26 @@ Core productivity module for user task management.
 - completion state
 - archive state
 - timestamps
+
+---
+
+### 🔔 Notifications System
+Alerts users when a task is overdue or about to be due, computed on read rather than via a background scheduler.
+
+**Capabilities:**
+- List notifications (triggers a sync pass first)
+- Unread count for the bell badge
+- Mark one / mark all as read
+- Delete a notification
+- Auto-creates a notification when a task becomes overdue or is due within 30 minutes
+- Auto-cleans up notifications whose task is completed, rescheduled, archived, or deleted
+
+**Stored data:**
+- type (`overdue` | `due_soon`)
+- message
+- read state
+- linked task
+- timestamp
 
 ---
 
@@ -173,6 +196,19 @@ All operations:
 
 ---
 
+### 🔔 Notifications API
+```
+        GET /api/notifications/ → List notifications (runs sync first)
+        GET /api/notifications/unread-count → Unread count for the bell badge
+        PUT /api/notifications/{id}/read → Mark one notification read
+        PUT /api/notifications/read-all → Mark all notifications read
+        DELETE /api/notifications/{id} → Delete a notification
+```
+
+No scheduler process — overdue / due-soon notifications are generated and cleaned up as a side effect of the GET calls above.
+
+---
+
 ### 🧩 Settings API
 ```
         PUT /api/settings → Update user settings
@@ -247,12 +283,14 @@ PostgreSQL Database
 -        │   ├── tasks.py
 -        │   ├── notes.py
 -        │   ├── settings.py
+-        │   ├── notifications.py
 -        ├── services/
 -        │   ├── user_service.py
 -        │   ├── task_service.py
 -        │   ├── note_service.py
 -        │   ├── settings_service.py
 -        │   ├── data_service.py
+-        │   ├── notification_service.py
 -        ├── schemas/
 -        │   ├── user.py
 -        │   ├── task.py
@@ -308,6 +346,7 @@ BACKEND_URL=
 ## 📊 Status
 
 ### ✅ Completed
+- Email/password authentication
 - Google OAuth authentication
 - GitHub OAuth authentication
 - Full service-layer architecture
@@ -318,13 +357,23 @@ BACKEND_URL=
 - UI state persistence endpoint
 - PostgreSQL integration
 - Modular route structure
+- Notifications system (overdue / due-soon, read/unread, delete)
+- Auto-archiving of completed tasks
 
 ### 🔜 Planned
-- WebSockets for real-time sync
+- WebSockets for real-time sync (would replace the on-read notification sync)
 - Offline-first support
 - Background job processing
 - Rate limiting & API hardening
 - Analytics tracking layer
+
+### ⚠️ Known production hardening items
+- Password hashing uses SHA-256; should move to bcrypt/argon2
+- Cookie `domain` is hardcoded to `localhost`
+- OAuth flow is missing a `state` parameter
+- No rate limiting on auth endpoints
+- SQLAlchemy engine has `echo=True`
+- Task due dates/times are stored as naive local strings with no timezone conversion (notification overdue/due-soon checks share this assumption)
 
 
 
