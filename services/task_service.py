@@ -110,7 +110,7 @@ def auto_archive_completed_tasks(db: Session, user_id):
     db.query(Task).filter(
         Task.user_id == uid,
         Task.status == "done",
-        Task.is_archived == False,
+        Task.is_archived.isnot(True),
         Task.completed_at.isnot(None),
         Task.completed_at <= cutoff
     ).update({"is_archived": True}, synchronize_session=False)

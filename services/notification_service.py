@@ -57,7 +57,7 @@ def sync_notifications(db: Session, user_id) -> None:
 
     tasks = db.query(Task).filter(
         Task.user_id == uid,
-        Task.is_archived == False
+        Task.is_archived.isnot(True)
     ).all()
 
     still_valid = set()
