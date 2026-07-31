@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from db.models import User, UserSettings
 from schemas.user import UserStateUpdate
@@ -17,10 +18,6 @@ def create_or_get_user(userDict: dict, db: Session) -> User:
             )
         return user
 
-    # Generate the id ourselves instead of relying on the column default.
-    # SQLAlchemy's default=uuid.uuid4 is only evaluated at flush time, so
-    # new_user.id would still be None here — which is what was causing
-    # UserSettings.user_id to be inserted as NULL.
     new_user_id = uuid.uuid4()
 
     new_user = User(
