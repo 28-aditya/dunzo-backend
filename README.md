@@ -44,6 +44,10 @@ Frontend is completely decoupled and consumes only HTTP APIs.
 
 ---
 
+## Try dunzo
+
+  https://dunzo-two.vercel.app/
+
 ## ⚙️ Core Features
 
 ### 🔐 Authentication
